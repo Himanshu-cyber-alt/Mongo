@@ -1,10 +1,19 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const path = require('path');
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+// Load environment variables
+dotenv.config();
+
+// Handle __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import Student model
-const Student = require('./models/Student');
+import Student from './models/Student.js';
+
 
 const app = express();
 
@@ -15,7 +24,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 
 // Connect to MongoDB
+console.log('Mongo URI:', process.env.MONGODB_URI);
 mongoose.connect(process.env.MONGODB_URI)
+
   .then(() => console.log('MongoDB Connected'))
   .catch(err => console.log('MongoDB connection error:', err));
 
