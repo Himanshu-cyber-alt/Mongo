@@ -1,19 +1,15 @@
+// index.js
 import express from 'express';
-import mongoose from 'mongoose';
 import path from 'path';
 import dotenv from 'dotenv';
+import pool from './models/db.js';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// Load environment variables
 dotenv.config();
 
-// Handle __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Import Student model
-import Student from './models/Student.js';
-
+const __dirname = dirname(__filename);
 
 const app = express();
 
@@ -23,18 +19,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 
-// Connect to MongoDB
-console.log('Mongo URI:', process.env.MONGODB_URI);
-mongoose.connect(process.env.MONGODB_URI)
-
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB connection error:', err));
+// Create table if not exists
+const initQuery = `
+CREATE TABLE IF NOT EXISTS students (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  course VARCHAR(100) NOT NULL,
+  grade INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`;
+pool.query(initQuery);
 
 // Routes
 app.get('/', async (req, res) => {
   try {
-    const students = await Student.find().sort({ createdAt: -1 });
-    res.render('index', { students });
+    const result = await pool.query('SELECT * FROM students ORDER BY created_at DESC');
+    res.render('index', { students: result.rows });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
@@ -46,14 +46,12 @@ app.get('/add', (req, res) => {
 });
 
 app.post('/add', async (req, res) => {
+  const { name, course, grade } = req.body;
   try {
-    const { name, course, grade } = req.body;
-    const newStudent = new Student({
-      name,
-      course,
-      grade
-    });
-    await newStudent.save();
+    await pool.query(
+      'INSERT INTO students (name, course, grade) VALUES ($1, $2, $3)',
+      [name, course, grade]
+    );
     res.redirect('/');
   } catch (err) {
     console.error(err);
@@ -64,3 +62,4 @@ app.post('/add', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
