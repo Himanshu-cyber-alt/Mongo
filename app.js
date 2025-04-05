@@ -1,3 +1,4 @@
+
 // index.js
 import express from 'express';
 import path from 'path';
@@ -41,8 +42,9 @@ app.get('/', async (req, res) => {
   }
 });
 
-app.get('/add', (req, res) => {
-  res.render('add');
+app.get('/add', async(req, res) => {
+  const result = await pool.query('SELECT * FROM students ORDER BY created_at DESC');
+  res.render('add.ejs',{students : result.rows});
 });
 
 app.post('/add', async (req, res) => {
@@ -62,4 +64,3 @@ app.post('/add', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
